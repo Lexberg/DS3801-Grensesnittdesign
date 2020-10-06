@@ -1,103 +1,198 @@
-const root = document.getElementById('root');
+    const root = document.getElementById('root');
 
-let players = [
-    {
-        name: 'playerOne',
-        score: 0
-    },
-    {
-        name: 'playerTwo',
-        score: 0
-    },
-];
-const resetButtonPressed = () => {
-    players.forEach(player => {
-        player.score = 0;
-        updateScore(player);
+    let players = [
+        {
+            name:'Player 1',
+            score: 0
+        },
+        {
+            name: 'Player 2',
+            score: 0
+        },
+    ];
+
+    const createButton = (buttonText, buttonClassName, buttonId, buttonFunction) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.innerHTML = buttonText;
+
+        if (buttonClassName !== null && buttonClassName !== undefined) {
+            if (typeof buttonClassName === 'string') {
+                button.className = buttonClassName;
+            } else {
+                buttonClassName.forEach(className => {
+                    button.classList.add(className);
+                });
+            }
+        }
+        if (buttonId !== null && buttonId !== undefined) {
+            button.id = buttonId;
+        }
+        button.addEventListener('click', buttonFunction);
+        return button;
+    };
+
+    const resetButtonPressed = () => {
+
+        players.forEach(player => {
+            player.score = 0;
+            updateScoreOnScreen(player);
+
+            const winnerScore = document.getElementById(`score-keeper-for-player-${player.name}`);
+            winnerScore.classList.remove('winner');
+        });
+
+        handleWinnerText(null);
+    };
+
+    const doWeHaveAWinner = () => {
+        if (players[0].score >= 11 && players[0].score >= players[1].score + 2) {
+            return true;
+        } else if (players[1].score >= 11 && players[1].score >= players[0].score + 2) {
+            return true;
+        }
+
+        return false
+    };
+
+    const handleWinnerText = (winner) => {
+        if (winner !== null && winner !== undefined) {
+            const winnerText = document.createElement('h1');
+            winnerText.classList.add('winner');
+            winnerText.id = 'winner-text';
+            winnerText.textContent = `${winner.name} is the winner`;
+            root.appendChild(winnerText);
+        } else {
+            const winnerText = document.getElementById('winner-text');
+            if (winnerText !== null && winnerText !== undefined) {
+                root.removeChild(winnerText);
+            }
+        }
+    };
+
+    const updateWinner = () => {
+        let winner = players[1];
+
+        if (players[0].score >= 11 && players[0].score >= players[1].score + 2) {
+            winner = players[0];
+        }
 
         document
-            .getElementById(`score-keeper-for-player-${player.name}`)
-            .classList.remove('winner');
-    });
-};
+            .getElementById(`score-keeper-for-player-${winner.name}`)
+            .classList.add('winner');
 
-const createResetButton = (parent) => {
-    const reset = document.createElement('button');
-    reset.type = 'button';
-    reset.innerText = 'Reset';
-    reset.className = 'reset-button';
-    reset.addEventListener('click', resetButtonPressed);
-    parent.appendChild(reset);
-};
+        handleWinnerText(winner);
 
-const doWeHaveAWinner = () => {
-    if (players[0].score >= 11 && players[0].score >= players[1].score + 2) {
-        return true;
-    } else if (players[1].score >= 11 && players[1].score >= players[0].score + 2) {
-        return true;
-    } else {
-        return false;
-    }
-};
+    };
 
-const updateWinner = () => {
-    let winner = players[1];
+    const updateScoreOnScreen = (player) => {
+        const score = document.getElementById(`score-keeper-for-player-${player.name}`);
+        score.innerHTML = player.score;
+    };
 
-    if(players[0].score >= 11 && players[0].score >= players[1].score + 2) {
-        winner = players[0];
-    }
-    document
-        .getElementById(`score-keeper-for-players-${winner.name}`)
-        .classList.add('winner');
-};
-
-const updateScore = (player) => {
-    const score = document.getElementById(`score-keeper-for-player-${player.name}`);
-    score.innerHTML = player.score;
-};
-
-const handleScoreChange = (player, button, scoreUpdateMethod) => {
-    button.addEventListener('click', () => {
+    const handleScoreChange = (player, scoreUpdateMethod) => {
         if (!doWeHaveAWinner()) {
             player.score = scoreUpdateMethod(player.score);
-            updateScore(player);
+            updateScoreOnScreen(player);
 
             if (doWeHaveAWinner()) {
                 updateWinner();
-                console.log('We have a winner!');
             }
         }
-    });
-};
+    };
 
-const createInput = (player) => {
-    const subtractButton = document.createElement('button');
-    subtractButton.type = 'button';
-    subtractButton.classList.add('increment-button');
-    subtractButton.innerText = '-';
+    const createPlayerInputHandler = (player) => {
+        const subtractButton = createButton('-', 'increment-button', null, () => {
+            handleScoreChange(player, (number) => number > 0 ? number - 1: number);
+        });
 
-    const addButton = document.createElement('button');
-    addButton.type = 'button';
-    addButton.classList.add('increment-button');
-    addButton.innerText = '+';
+        const addButton = createButton('+', 'increment-button', null, () => {
+            handleScoreChange(player, (number) => number + 1);
+        });
 
-    const container = document.createElement('div');
-    container.classList.add('player-box');
+        const container = document.createElement('div');
+        container.classList.add('player-box');
+        container.innerHTML = `
+        <h1 class='score' id='score-keeper-for-player-${player.name}'>${player.score}</h1>
+        <h4 class='player-name'>${player.name}</h4>
+        `;
+        container.appendChild(subtractButton);
+        container.appendChild(addButton);
 
-    container.innerHTML = `<h1 class='score' id='score-keeper-for-player-${player.name}'>${player.score}</h1>`;
-    container.appendChild(subtractButton);
-    container.appendChild(addButton);
+        return container;
+    };
 
-    handleScoreChange(player, addButton, (number) => number +1);
-    handleScoreChange(player, subtractButton, (number) => number > 0 ? number - 1: number);
+    const createGame = (parent) => {
+        players.map(player => {
+            parent.appendChild(
+                createPlayerInputHandler(player)
+            );
+        });
+        const resetButton = createButton('Reset', ['reset-button'], null, resetButtonPressed);
+        parent.appendChild(resetButton);
+    };
 
-    return container;
-};
+    const startGame = () => {
+        if (players[0].name !== 'Player 1' && players[1].name !== 'Player 2') {
+            return players[0].name !== players[1].name;
+        }
+    };
 
-players.map(player => {
-    root.appendChild(
-        createInput(player)
-    );
-});
+    const startGameButton = (parent, shouldGameStart) => {
+        if (shouldGameStart) {
 
-createResetButton(root);
+            const gameButton = createButton('Start Game!', null, 'start-game-button', () => {
+                parent.innerHTML = null;
+                createGame(parent);
+            });
+
+            parent.appendChild(gameButton);
+
+        } else {
+            const gameButton = document.getElementById('start-game-button');
+            if (gameButton !== null) {
+                parent.removeChild(gameButton);
+            }
+        }
+    };
+
+    const createPlayerNameInput = (player, parent) => {
+        let firstNamePlayerHad = player.name;
+
+        const container = document.createElement('div');
+        const nameTitle = document.createElement('h2');
+        nameTitle.textContent = player.name;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Skriv inn spiller navn';
+
+        const addNameButton = createButton('Legg til', null, null, () => {
+            if (input.value !== firstNamePlayerHad && input.value.length > 0) {
+                nameTitle.textContent = input.value;
+                player.name = input.value;
+
+                addNameButton.textContent = 'Endre navn';
+                container.removeChild(input);
+
+            } else {
+                nameTitle.textContent = firstNamePlayerHad;
+                addNameButton.textContent = 'Legg til';
+
+                player.name = firstNamePlayerHad;
+
+                container.innerHTML = null;
+                container.appendChild(nameTitle);
+                container.appendChild(input);
+                container.appendChild(addNameButton);
+            }
+            startGameButton(parent, startGame());
+        });
+
+        container.appendChild(nameTitle);
+        container.appendChild(input);
+        container.appendChild(addNameButton);
+        parent.appendChild(container);
+    };
+
+    players.forEach(player => createPlayerNameInput(player, root));
